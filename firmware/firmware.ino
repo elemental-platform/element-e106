@@ -1,4 +1,4 @@
-// LoopSensors LS106 v1.0.4 firmware
+// Element E106 v1.0.4 firmware
 
 // Developed by AKstudios
 // Updated: 06/12/2019
