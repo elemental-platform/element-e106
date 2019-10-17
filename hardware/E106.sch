@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="9.1.1">
+<eagle version="9.5.1">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -4825,7 +4825,10 @@ batt.</text>
 <attribute name="NAME" x="162.31" y="113.05" size="1.27" layer="95" font="vector" rot="R270" align="center"/>
 <attribute name="VALUE" x="157.72" y="113.05" size="1.27" layer="96" font="vector" rot="R270" align="center"/>
 </instance>
-<instance part="U1" gate="G$1" x="48.26" y="40.64"/>
+<instance part="U1" gate="G$1" x="48.26" y="40.64" smashed="yes">
+<attribute name="NAME" x="40.64" y="59.055" size="1.778" layer="95"/>
+<attribute name="VALUE" x="40.64" y="22.86" size="1.778" layer="96"/>
+</instance>
 <instance part="GND6" gate="1" x="60.96" y="22.86" smashed="yes">
 <attribute name="VALUE" x="58.42" y="20.32" size="1.778" layer="96"/>
 </instance>
@@ -4835,7 +4838,10 @@ batt.</text>
 <instance part="SUPPLY9" gate="G$1" x="27.94" y="50.8" smashed="yes">
 <attribute name="VALUE" x="26.924" y="54.356" size="1.778" layer="96"/>
 </instance>
-<instance part="D2" gate="G$1" x="251.46" y="-35.56" rot="R270"/>
+<instance part="D2" gate="G$1" x="251.46" y="-35.56" smashed="yes" rot="R270">
+<attribute name="NAME" x="256.547759375" y="-17.7528" size="1.271940625" layer="95" rot="R270"/>
+<attribute name="VALUE" x="254.00246875" y="-17.7627" size="1.271240625" layer="96" rot="R270"/>
+</instance>
 <instance part="SUPPLY10" gate="G$1" x="274.32" y="-30.48" smashed="yes">
 <attribute name="VALUE" x="273.304" y="-26.924" size="1.778" layer="96"/>
 </instance>
@@ -5519,8 +5525,8 @@ batt.</text>
 <approved hash="106,1,-50.8,-30.48,DTR,,,,,"/>
 <approved hash="106,1,12.7,-63.5,RX,,,,,"/>
 <approved hash="106,1,12.7,-66.04,TX,,,,,"/>
-<approved hash="113,1,-40.8771,58.1939,CN1,,,,,"/>
-<approved hash="113,1,145.457,35.4923,J4,,,,,"/>
+<approved hash="113,1,-40.8771,58.2244,CN1,,,,,"/>
+<approved hash="113,1,145.457,35.5227,J4,,,,,"/>
 <approved hash="113,1,137.16,-62.2833,D1,,,,,"/>
 </errors>
 </schematic>
