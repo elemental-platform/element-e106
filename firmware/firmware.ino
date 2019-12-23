@@ -295,7 +295,7 @@ void fadeLED(int pin)
   digitalWrite(pin, LOW); // switch LED off at the end of fade
 }
 
-////// blink LED *****************************************
+// blink LED *****************************************
 void blinkLED(int pin)
 {
   digitalWrite(pin, HIGH);
