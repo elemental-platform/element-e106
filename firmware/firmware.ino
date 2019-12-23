@@ -1,7 +1,7 @@
-// Element E106 v1.0.4 firmware
+// Element E106 v1.0.6 firmware
 
 // Developed by AKstudios
-// Updated: 06/12/2019
+// Updated: 12/22/2019
 
 #include <RFM69.h>  //  https://github.com/LowPowerLab/RFM69
 #include <SPI.h>
@@ -14,18 +14,20 @@
 #include <avr/wdt.h>
 
 // define node parameters
-//#define NODEID              211
-uint16_t NODEID =             211; // same as above, but supports 10bit addresses (up to 1023 node IDs)
-#define NETWORKID           210
-#define ROOM_GATEWAYID      210
+//#define NODEID              41
+uint16_t NODEID =             41; // same as above, but supports 10bit addresses (up to 1023 node IDs)
+#define NETWORKID           40
+#define ROOM_GATEWAYID      40
 #define GATEWAYID           1
 #define GATEWAY_NETWORKID   1
 #define FREQUENCY           RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY          "Tt-Mh=SQ#dn#JY3_" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW          //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define LED                 9 // led pin
+#define RED                 5
+#define GREEN               6
+#define BLUE                7
 #define POWER               4
-//#define targetRSSI          -80
 
 // define objects
 RFM69 radio;
@@ -35,6 +37,7 @@ Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the senso
 
 // define other global variables
 int wake_interval = 0;
+float batt;
 //float adc16;
 
 char dataPacket[150];
@@ -56,9 +59,9 @@ void setup()
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
-  //radio.enableAutoPower(targetRSSI);
 
-  fadeLED();
+  //fadeRGBLED(GREEN);
+  fadeLED(LED);
 }
 
 
@@ -91,7 +94,7 @@ void sleep()
   sei();  
 
   ADCSRA = _ADCSRA; // restore ADC state (enable ADC)
-  delay(1);
+  //delay(1);
 }
 
 
@@ -111,10 +114,9 @@ void loop()
     radio.setNetwork(NETWORKID);
     
     memset(dataPacket, 0, sizeof dataPacket);   // clear array
-  
-    digitalWrite(LED, HIGH);
-    delay(5);
-    digitalWrite(LED, LOW);
+    blinkLED(LED);
+    //blinkRGBLED(GREEN);
+    //checkBattery();
 
     wake_interval = 0;    // reset wake interval to 0
   }
@@ -126,7 +128,7 @@ void loop()
 void readSensors()
 {
   digitalWrite(POWER, HIGH);
-  delay(10);
+  delay(1);
 
   // Light Intensity - TSL2591
   float lux, infrared;
@@ -166,9 +168,6 @@ void readSensors()
 //  float R = resistance(adc16, 10000); // Replace 10,000 ohm with the actual resistance of the resistor measured using a multimeter (e.g. 9880 ohm)
 //  float air_temp = steinhart_2(R);  // get temperature from thermistor using the custom Steinhart-hart equation by US sensors
 
-  
-
-
   // read battery level
   float avg=0.0;
   for(int i=0; i<5; i++)
@@ -176,9 +175,9 @@ void readSensors()
     avg = avg + analogRead(A7);
   }
   float adc_a7 = avg / 5.0;
-  float batt = (adc_a7/1023) * 2 * 3.3;
-  
+  batt = (adc_a7/1023) * 2 * 3.3;
 
+  
   // define character arrays for all variables
   char _i[3];
   char _t[7];
@@ -210,7 +209,7 @@ void readSensors()
   strcat(dataPacket, _a);
   strcat(dataPacket, ",b:");
   strcat(dataPacket, _b);
-  delay(10);
+  delay(5);
 }
 
 //// Perform multiple iterations to get higher accuracy ADC values (reduce noise) ******************************************
@@ -267,15 +266,21 @@ float steinhart_2(float R)
 }
 
 
+void checkBattery()
+{
+  if(batt < 3.65)
+    fadeLED(RED);
+}
 
-// Fade LED *****************************************
-void fadeLED()
+
+//// Fade LED *****************************************
+void fadeLED(int pin)
 {
   int brightness = 0;
   int fadeAmount = 5;
   for(int i=0; i<510; i=i+5)  // 255 is max analog value, 255 * 2 = 510
   {
-    analogWrite(LED, brightness);  // pin 9 is LED
+    analogWrite(pin, brightness);  // pin 9 is LED
   
     // change the brightness for next time through the loop:
     brightness = brightness + fadeAmount;  // increment brightness level by 5 each time (0 is lowest, 255 is highest)
@@ -288,7 +293,45 @@ void fadeLED()
     // wait for 20-30 milliseconds to see the dimming effect
     delay(10);
   }
-  digitalWrite(LED, LOW); // switch LED off at the end of fade
+  digitalWrite(pin, LOW); // switch LED off at the end of fade
+}
+
+////// blink LED *****************************************
+void blinkLED(int pin)
+{
+  digitalWrite(pin, HIGH);
+  delay(5);
+  digitalWrite(pin, LOW);
+}
+
+// Fade RGB LED (common anode) *****************************************
+void fadeRGBLED(int pin)
+{
+  int brightness = 255;
+  int fadeAmount = 5;
+  for(int i=0; i<510; i=i+5)  // 255 is max analog value, 255 * 2 = 510
+  {
+    analogWrite(pin, brightness);
+  
+    // change the brightness for next time through the loop:
+    brightness = brightness - fadeAmount;  // increment brightness level by 5 each time (0 is lowest, 255 is highest)
+  
+    // reverse the direction of the fading at the ends of the fade:
+    if (brightness <= 0 || brightness >= 255)
+    {
+      fadeAmount = -fadeAmount;
+    }
+    // wait for 20-30 milliseconds to see the dimming effect
+    delay(10);
+  }
+  digitalWrite(pin, HIGH); // switch LED off at the end of fade
+}
+// blink RGB LED (common anode) *****************************************
+void blinkRGBLED(int pin)
+{
+  digitalWrite(pin, LOW);
+  delay(5);
+  digitalWrite(pin, HIGH);
 }
 
 // bruh
