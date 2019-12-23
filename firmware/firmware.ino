@@ -14,8 +14,7 @@
 #include <avr/wdt.h>
 
 // define node parameters
-//#define NODEID              41
-uint16_t NODEID =             41; // same as above, but supports 10bit addresses (up to 1023 node IDs)
+#define NODEID              41  // supports 10bit addresses (up to 1023 node IDs)
 #define NETWORKID           40
 #define ROOM_GATEWAYID      40
 #define GATEWAYID           1
@@ -145,13 +144,12 @@ void readSensors()
   {
     lux = event.light;
   }
-//delay(1);
+  //delay(1);
   
   // T/RH - SHT31
   sht31.begin(0x44);
   float temp = sht31.readTemperature();
   float rh = sht31.readHumidity();
-
 
   // external temp reading
   float adc = averageADC(A0);
@@ -179,15 +177,15 @@ void readSensors()
 
   
   // define character arrays for all variables
-  char _i[3];
+  //char _i[3];
   char _t[7];
   char _h[7];
   char _l[7];
   char _a[7];
   char _b[5];
-  
+
   // convert all flaoting point and integer variables into character arrays
-  dtostrf(NODEID, 1, 0, _i);
+  //dtostrf(NODEID, 1, 0, _i);
   dtostrf(temp, 3, 2, _t);  // this function converts float into char array. 3 is minimum width, 2 is decimal precision
   dtostrf(rh, 3, 2, _h);
   dtostrf(lux, 1, 0, _l);
@@ -197,9 +195,9 @@ void readSensors()
   dataPacket[0] = 0;  // first value of dataPacket should be a 0
   
   // create datapacket by combining all character arrays into a large character array
-  strcat(dataPacket, "i:");
-  strcat(dataPacket, _i);
-  strcat(dataPacket, ",t:");
+  //strcat(dataPacket, "i:");
+  //strcat(dataPacket, _i);
+  strcat(dataPacket, "t:");
   strcat(dataPacket, _t);
   strcat(dataPacket, ",h:");
   strcat(dataPacket, _h);
@@ -210,6 +208,7 @@ void readSensors()
   strcat(dataPacket, ",b:");
   strcat(dataPacket, _b);
   delay(5);
+  
 }
 
 //// Perform multiple iterations to get higher accuracy ADC values (reduce noise) ******************************************
