@@ -1,7 +1,7 @@
 // Element E106 v1.0.6 firmware
 
 // Developed by AKstudios
-// Updated: 12/22/2019
+// Updated: 12/23/2019
 
 #include <RFM69.h>  //  https://github.com/LowPowerLab/RFM69
 #include <SPI.h>
@@ -52,6 +52,9 @@ void setup()
   
   pinMode(POWER, OUTPUT);
   pinMode(LED, OUTPUT);  // pin 9 controls LED
+//  pinMode(RED, OUTPUT);
+//  pinMode(GREEN, OUTPUT);
+//  pinMode(BLUE, OUTPUT);
   
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef IS_RFM69HW
