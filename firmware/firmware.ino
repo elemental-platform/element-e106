@@ -1,7 +1,10 @@
-// Element E106 v1.0.6 firmware
-
+// Element E106 v1.1.0 firmware
 // Developed by AKstudios
-// Updated: 12/23/2019
+
+// Updated: 01/22/2020
+
+//*****************************************************************************************************************************
+// libraries in use
 
 #include <RFM69.h>  //  https://github.com/LowPowerLab/RFM69
 #include <SPI.h>
@@ -9,14 +12,16 @@
 #include <Wire.h> 
 #include <Adafruit_SHT31.h> //https://github.com/adafruit/Adafruit_SHT31
 #include <Adafruit_TSL2591.h> // https://github.com/adafruit/Adafruit_TSL2591_Library
-//#include <Adafruit_ADS1015.h> // https://github.com/adafruit/Adafruit_ADS1X15
 #include <avr/sleep.h>
 #include <avr/wdt.h>
+#include <Adafruit_ADS1015.h> // https://github.com/adafruit/Adafruit_ADS1X15
 
-// define node parameters
-#define NODEID              41  // supports 10bit addresses (up to 1023 node IDs)
-#define NETWORKID           40
-#define ROOM_GATEWAYID      40
+//*****************************************************************************************************************************
+// configurable global variables - define node parameters
+
+#define NODEID              941  // supports 10bit addresses (up to 1023 node IDs)
+#define NETWORKID           940
+#define ROOM_GATEWAYID      940
 #define GATEWAYID           1
 #define GATEWAY_NETWORKID   1
 #define FREQUENCY           RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
@@ -27,52 +32,63 @@
 #define GREEN               6
 #define BLUE                7
 #define POWER               4
+#define IS_16BIT            //uncomment only if the board uses a 16-bit ADC. Leave commented out if built-in 10-bit ADC is used.
+//#define IS_RGBLED           //uncomment only if RGB LED is used. Otherwise single color LED is used
 
-// define objects
+// other global variables and objects
 RFM69 radio;
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the sensor identifier (for your use later)
-//Adafruit_ADS1115 ads;
-
-// define other global variables
 int wake_interval = 0;
 float batt;
-//float adc16;
-
 char dataPacket[150];
+
+#ifdef IS_16BIT
+  Adafruit_ADS1115 ads;
+  float adc16;
+#endif
+
+//*****************************************************************************************************************************
+// Interrupt service routine for watchdog timer
 
 ISR(WDT_vect)  // Interrupt Service Routine for WatchDog Timer
 {
   wdt_disable();  // disable watchdog
 }
 
+//*****************************************************************************************************************************
+
 void setup()
 {
   Serial.begin(115200);
-  
   pinMode(POWER, OUTPUT);
-  pinMode(LED, OUTPUT);  // pin 9 controls LED
-//  pinMode(RED, OUTPUT);
-//  pinMode(GREEN, OUTPUT);
-//  pinMode(BLUE, OUTPUT);
-  
+
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef IS_RFM69HW
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
-
-  //fadeRGBLED(GREEN);
+  
+#ifdef IS_RGBLED
+  pinMode(RED, OUTPUT);
+  pinMode(GREEN, OUTPUT);
+  pinMode(BLUE, OUTPUT);
+  fadeRGBLED(GREEN);
+#else
+  pinMode(LED, OUTPUT);  // pin 9 controls LED
   fadeLED(LED);
+#endif  
 }
 
+//*****************************************************************************************************************************
+// this function puts the node to sleep
 
 void sleep()
 {
   Serial.flush(); // empty the send buffer, before continue with; going to sleep
   radio.sleep();
   digitalWrite(POWER, LOW);
-  delay(1);
+  delayMicroseconds(100);
 
   cli();          // stop interrupts
   MCUSR = 0;
@@ -96,9 +112,10 @@ void sleep()
   sei();  
 
   ADCSRA = _ADCSRA; // restore ADC state (enable ADC)
-  //delay(1);
+  delayMicroseconds(10);
 }
 
+//*****************************************************************************************************************************
 
 void loop() 
 {
@@ -114,23 +131,28 @@ void loop()
     radio.setNetwork(GATEWAY_NETWORKID);
     radio.sendWithRetry(GATEWAYID, dataPacket, strlen(dataPacket));
     radio.setNetwork(NETWORKID);
-    
-    memset(dataPacket, 0, sizeof dataPacket);   // clear array
-    blinkLED(LED);
-    //blinkRGBLED(GREEN);
-    //checkBattery();
 
+#ifdef IS_RGBLED
+    blinkRGBLED(GREEN, 3);
+    checkBattery();
+#else
+    blinkLED(LED, 3);
+#endif
+
+    memset(dataPacket, 0, sizeof dataPacket);   // clear array
     wake_interval = 0;    // reset wake interval to 0
   }
   else
     wake_interval++;    // increment no. of times node wakes up
 }
 
+//*****************************************************************************************************************************
+// This function reads all sensors and creates a datapacket to transmit
 
 void readSensors()
 {
   digitalWrite(POWER, HIGH);
-  delay(1);
+  delayMicroseconds(100);
 
   // Light Intensity - TSL2591
   float lux, infrared;
@@ -147,7 +169,6 @@ void readSensors()
   {
     lux = event.light;
   }
-  //delay(1);
   
   // T/RH - SHT31
   sht31.begin(0x44);
@@ -155,19 +176,21 @@ void readSensors()
   float rh = sht31.readHumidity();
 
   // external temp reading
-  float adc = averageADC(A0);
+#ifdef IS_16BIT   // ADS1115 16-bit ADC -- external air temperature
+  ads.begin();
+  ads.setGain(GAIN_ONE);
+  delay(1);
+  adc16 = samples16bit(1, 5);   // get ADC value from channel 1, average of 5 samples
+  float R = resistance(adc16, 10000); // Replace 10,000 ohm with the actual resistance of the resistor measured using a multimeter (e.g. 9880 ohm)
+  float air_temp = steinhart_2(R);  // get temperature from thermistor using the custom Steinhart-hart equation by US sensors
+
+#else   // 10-bit internal ADC reading
+  float adc = samples10bit(A0, 5); // get ADC value from pin A0, average of 5 samples
   float R = resistance(adc, 10000); // Replace 10,000 ohm with the actual resistance of the resistor measured using a multimeter (e.g. 9880 ohm)
   float air_temp = steinhart_2(R);  // get temperature from thermistor using the custom Steinhart-hart equation
   if (air_temp < -200 || air_temp > 1000) // thermistor not connected or incorrect value
     air_temp = 0;
-
-//  // ADS1115 16-bit ADC -- external air temperature
-//  ads.begin();
-//  ads.setGain(GAIN_ONE);
-//  delay(1);
-//  adc16 = samples(1);   // get avg ADC value from channel 1 
-//  float R = resistance(adc16, 10000); // Replace 10,000 ohm with the actual resistance of the resistor measured using a multimeter (e.g. 9880 ohm)
-//  float air_temp = steinhart_2(R);  // get temperature from thermistor using the custom Steinhart-hart equation by US sensors
+#endif
 
   // read battery level
   float avg=0.0;
@@ -178,7 +201,6 @@ void readSensors()
   float adc_a7 = avg / 5.0;
   batt = (adc_a7/1023) * 2 * 3.3;
 
-  
   // define character arrays for all variables
   //char _i[3];
   char _t[7];
@@ -210,50 +232,65 @@ void readSensors()
   strcat(dataPacket, _a);
   strcat(dataPacket, ",b:");
   strcat(dataPacket, _b);
-  delay(5);
-  
+  delay(1);
 }
 
-//// Perform multiple iterations to get higher accuracy ADC values (reduce noise) ******************************************
-//float samples(int pin)
-//{
-//  float n=5.0;  // number of iterations to perform
-//  float sum=0.0;  //store sum as a 32-bit number
-//  for(int i=0;i<n;i++)
-//  {
-//    //float value = analogRead(pin);
-//    float value = ads.readADC_SingleEnded(pin);
-//    sum = sum + value;
-//    delay(1); // makes readings slower - probably don't need this delay, but ¯\_(ツ)_/¯
-//  }
-//  float average = sum/n;   //store average as a 32-bit number with decimal accuracy
-//  return average;
-//}
+//*****************************************************************************************************************************
+// This function takes samples from the analog pins on ADS1115 16-bit ADC
+// It performs multiple iterations to get higher accuracy ADC values (reduce noise)
 
-
-// Averaging ADC values to counter noise in readings  *********************************************
-float averageADC(int pin)
+float samples16bit(int pin, int n)
 {
-  float sum=0.0;
-  for(int i=0;i<5;i++)
+//  float n=5.0;  // number of iterations to perform
+  float sum=0.0;  //store sum as a 32-bit number
+  for(int i=0;i<n;i++)
   {
-     sum = sum + analogRead(pin);
+    //float value = analogRead(pin);
+    float value = ads.readADC_SingleEnded(pin);
+    sum = sum + value;
+    delayMicroseconds(10); // makes readings slower - probably don't need this delay, but ¯\_(ツ)_/¯
   }
-  float average = sum/5.0;
+  float average = sum/float(n);   //store average as a 32-bit number with decimal accuracy
   return average;
 }
 
-// Get resistance ****************************************************************
+//*****************************************************************************************************************************
+// This function takes samples from the 10-bit analog pins on the Arduino
+// It performs multiple iterations to get higher accuracy ADC values (reduce noise)
+
+float samples10bit(int pin, int n)
+{
+  // float n=5.0;
+  float sum=0.0;
+  for(int i=0;i<n;i++)
+  {
+     sum = sum + analogRead(pin);
+     delayMicroseconds(10); // makes readings slower - probably don't need this delay, but ¯\_(ツ)_/¯
+  }
+  float average = sum/float(n);
+  return average;
+}
+
+//*****************************************************************************************************************************
+// This function converts the ADC values to a resistance value
+
 float resistance(float adc, int true_R)
 {
+  
+#ifdef IS_16BIT
+  float ADCvalue = adc*(8.192/3.3);  // Vcc = 8.192 on GAIN_ONE setting, Arduino Vcc = 3.3V in this case
+  float R = true_R/(65535/ADCvalue-1);  // 65535 refers to 16-bit number
+#else
   float R = true_R/(1023.0/adc-1.0);   // convert 10-bit reading into resistance
-  //float ADCvalue = adc*(8.192/3.3);  // Vcc = 8.192 on GAIN_ONE setting, Arduino Vcc = 3.3V in this case
-  //R = 10000/(65535/ADCvalue-1);  // 65535 refers to 16-bit number
+#endif
+
   return R;
 }
 
+//*****************************************************************************************************************************
+// This function converts the resistance value to a temperature value
+// Based on the Steinhart equation (Adafruit's 10K Precision Epoxy Thermistor - 3950 NTC) *****************
 
-// Get temperature from Steinhart equation (10K Precision Epoxy Thermistor - 3950 NTC) *****************
 float steinhart_2(float R)
 {
   float steinhart;
@@ -267,15 +304,18 @@ float steinhart_2(float R)
   return steinhart;
 }
 
+//*****************************************************************************************************************************
+// This function checks the battery level and blinks an LED if the level is low
 
 void checkBattery()
 {
   if(batt < 3.65)
-    fadeLED(RED);
+    fadeRGBLED(RED);
 }
 
+//*****************************************************************************************************************************
+// Fade LED
 
-//// Fade LED *****************************************
 void fadeLED(int pin)
 {
   int brightness = 0;
@@ -298,15 +338,19 @@ void fadeLED(int pin)
   digitalWrite(pin, LOW); // switch LED off at the end of fade
 }
 
-// blink LED *****************************************
-void blinkLED(int pin)
+//*****************************************************************************************************************************
+// blink LED
+
+void blinkLED(int pin, int blinkDelay)
 {
   digitalWrite(pin, HIGH);
-  delay(5);
+  delay(blinkDelay);
   digitalWrite(pin, LOW);
 }
 
-// Fade RGB LED (common anode) *****************************************
+//*****************************************************************************************************************************
+// Fade RGB LED (common anode)
+
 void fadeRGBLED(int pin)
 {
   int brightness = 255;
@@ -328,12 +372,16 @@ void fadeRGBLED(int pin)
   }
   digitalWrite(pin, HIGH); // switch LED off at the end of fade
 }
-// blink RGB LED (common anode) *****************************************
-void blinkRGBLED(int pin)
+
+//*****************************************************************************************************************************
+// blink RGB LED (common anode)
+
+void blinkRGBLED(int pin, int blinkDelay)
 {
   digitalWrite(pin, LOW);
-  delay(5);
+  delay(blinkDelay);
   digitalWrite(pin, HIGH);
 }
 
+//*****************************************************************************************************************************
 // bruh
