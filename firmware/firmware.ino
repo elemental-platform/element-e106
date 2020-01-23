@@ -1,8 +1,8 @@
 //*****************************************************************************************************************************
-// Element E106 v1.1.0 firmware
+// Element E106 v1.1.1 firmware
 // Developed by AKstudios
 
-// Updated: 01/22/2020
+// Updated: 01/23/2020
 
 //*****************************************************************************************************************************
 // libraries in use
@@ -20,13 +20,13 @@
 //*****************************************************************************************************************************
 // configurable global variables - define node parameters
 
-#define NODEID              951  // supports 10bit addresses (up to 1023 node IDs)
-#define NETWORKID           950
-#define ROOM_GATEWAYID      950
+#define NODEID              131  // supports 10bit addresses (up to 1023 node IDs)
+#define NETWORKID           130
+#define ROOM_GATEWAYID      130
 #define GATEWAYID           1
 #define GATEWAY_NETWORKID   1
 #define FREQUENCY           RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-#define ENCRYPTKEY          "Tt-Mh=SQ#dn#JY3_" //has to be same 16 characters/bytes on all nodes, not more not less!
+#define ENCRYPTKEY          "RgUjXn2r5u8x/A?D" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW          //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define LED                 9 // led pin
 #define RED                 5
