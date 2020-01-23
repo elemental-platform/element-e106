@@ -1,3 +1,4 @@
+//*****************************************************************************************************************************
 // Element E106 v1.1.0 firmware
 // Developed by AKstudios
 
@@ -8,12 +9,12 @@
 
 #include <RFM69.h>  //  https://github.com/LowPowerLab/RFM69
 #include <SPI.h>
-#include <Arduino.h>
 #include <Wire.h> 
+#include <Arduino.h>
+#include <avr/wdt.h>
+#include <avr/sleep.h>
 #include <Adafruit_SHT31.h> //https://github.com/adafruit/Adafruit_SHT31
 #include <Adafruit_TSL2591.h> // https://github.com/adafruit/Adafruit_TSL2591_Library
-#include <avr/sleep.h>
-#include <avr/wdt.h>
 #include <Adafruit_ADS1015.h> // https://github.com/adafruit/Adafruit_ADS1X15
 
 //*****************************************************************************************************************************
@@ -32,21 +33,19 @@
 #define GREEN               6
 #define BLUE                7
 #define POWER               4
-#define IS_16BIT            //uncomment only if the board uses a 16-bit ADC. Leave commented out if built-in 10-bit ADC is used.
+//#define IS_16BIT            //uncomment only if the board uses a 16-bit ADC. Leave commented out if built-in 10-bit ADC is used.
 //#define IS_RGBLED           //uncomment only if RGB LED is used. Otherwise single color LED is used
 
-// other global variables and objects
+// other global objects and variables
 RFM69 radio;
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the sensor identifier (for your use later)
+Adafruit_ADS1115 ads;
+
 int wake_interval = 0;
 float batt;
 char dataPacket[150];
-
-#ifdef IS_16BIT
-  Adafruit_ADS1115 ads;
-  float adc16;
-#endif
+float adc16;
 
 //*****************************************************************************************************************************
 // Interrupt service routine for watchdog timer
@@ -88,7 +87,7 @@ void sleep()
   Serial.flush(); // empty the send buffer, before continue with; going to sleep
   radio.sleep();
   digitalWrite(POWER, LOW);
-  delayMicroseconds(100);
+  delayMicroseconds(10);
 
   cli();          // stop interrupts
   MCUSR = 0;
@@ -247,7 +246,6 @@ float samples16bit(int pin, int n)
   float sum=0.0;  //store sum as a 32-bit number
   for(int i=0;i<n;i++)
   {
-    //float value = analogRead(pin);
     float value = ads.readADC_SingleEnded(pin);
     sum = sum + value;
     delayMicroseconds(10); // makes readings slower - probably don't need this delay, but ¯\_(ツ)_/¯
