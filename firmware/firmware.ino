@@ -128,7 +128,7 @@ void loop()
     radio.sendWithRetry(ROOM_GATEWAYID, dataPacket, strlen(dataPacket));  // send data
     sleep();   // sleep 8 seconds before sending data to main gateway
     radio.setNetwork(GATEWAY_NETWORKID);
-    radio.sendWithRetry(GATEWAYID, dataPacket, strlen(dataPacket));
+    radio.send(GATEWAYID, dataPacket, strlen(dataPacket));
     radio.setNetwork(NETWORKID);
 
 #ifdef IS_RGBLED
