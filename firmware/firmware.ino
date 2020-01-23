@@ -20,9 +20,9 @@
 //*****************************************************************************************************************************
 // configurable global variables - define node parameters
 
-#define NODEID              941  // supports 10bit addresses (up to 1023 node IDs)
-#define NETWORKID           940
-#define ROOM_GATEWAYID      940
+#define NODEID              951  // supports 10bit addresses (up to 1023 node IDs)
+#define NETWORKID           950
+#define ROOM_GATEWAYID      950
 #define GATEWAYID           1
 #define GATEWAY_NETWORKID   1
 #define FREQUENCY           RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
@@ -87,7 +87,7 @@ void sleep()
   Serial.flush(); // empty the send buffer, before continue with; going to sleep
   radio.sleep();
   digitalWrite(POWER, LOW);
-  delayMicroseconds(10);
+  delayMicroseconds(100);
 
   cli();          // stop interrupts
   MCUSR = 0;
@@ -111,7 +111,7 @@ void sleep()
   sei();  
 
   ADCSRA = _ADCSRA; // restore ADC state (enable ADC)
-  delayMicroseconds(10);
+//  delayMicroseconds(10);
 }
 
 //*****************************************************************************************************************************
@@ -151,7 +151,7 @@ void loop()
 void readSensors()
 {
   digitalWrite(POWER, HIGH);
-  delayMicroseconds(100);
+  delayMicroseconds(200);
 
   // Light Intensity - TSL2591
   float lux, infrared;
