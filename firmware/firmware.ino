@@ -168,6 +168,8 @@ void readSensors()
   else
   {
     lux = event.light;
+    if (lux > 90000)
+      lux = 90000; // cap the maximum value at 90K lux
   }
   
   // T/RH - SHT31
