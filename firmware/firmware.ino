@@ -1,8 +1,8 @@
 //*****************************************************************************************************************************
-// Element E106 v1.1.1 firmware
+// Element E106 v1.1.2 firmware
 // Developed by AKstudios
 
-// Updated: 01/23/2020
+// Updated: 01/29/2020
 
 //*****************************************************************************************************************************
 // libraries in use
@@ -27,6 +27,7 @@
 #define GATEWAY_NETWORKID   1
 #define FREQUENCY           RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY          "RgUjXn2r5u8x/A?D" //has to be same 16 characters/bytes on all nodes, not more not less!
+#define FREQUENCY_EXACT     905000000   // change the frequency in areas of interference (default: 915MHz)
 #define IS_RFM69HW          //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define LED                 9 // led pin
 #define RED                 5
@@ -59,14 +60,17 @@ ISR(WDT_vect)  // Interrupt Service Routine for WatchDog Timer
 
 void setup()
 {
-  Serial.begin(115200);
+  //Serial.begin(115200);
   pinMode(POWER, OUTPUT);
 
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
+  radio.encrypt(ENCRYPTKEY);
 #ifdef IS_RFM69HW
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
-  radio.encrypt(ENCRYPTKEY);
+#ifdef FREQUENCY_EXACT
+  radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency
+#endif
   
 #ifdef IS_RGBLED
   pinMode(RED, OUTPUT);
