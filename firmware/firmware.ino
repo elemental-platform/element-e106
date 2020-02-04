@@ -1,8 +1,8 @@
 //*****************************************************************************************************************************
-// Element E106 v1.1.2 firmware
+// Element E106 v1.1.3 firmware
 // Developed by AKstudios
 
-// Updated: 01/29/2020
+// Updated: 02/04/2020
 
 //*****************************************************************************************************************************
 // libraries in use
@@ -20,9 +20,9 @@
 //*****************************************************************************************************************************
 // configurable global variables - define node parameters
 
-#define NODEID              131  // supports 10bit addresses (up to 1023 node IDs)
-#define NETWORKID           130
-#define ROOM_GATEWAYID      130
+#define NODEID              21  // supports 10bit addresses (up to 1023 node IDs)
+#define NETWORKID           20
+#define CONTROLNODE_ID      20
 #define GATEWAYID           1
 #define GATEWAY_NETWORKID   1
 #define FREQUENCY           RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
@@ -34,8 +34,10 @@
 #define GREEN               6
 #define BLUE                7
 #define POWER               4
-//#define IS_16BIT            //uncomment only if the board uses a 16-bit ADC. Leave commented out if built-in 10-bit ADC is used.
+#define HAS_CONTROL_NODE    //uncomment only if a control node is present
+//#define IS_16BIT          //uncomment only if the board uses a 16-bit ADC. Leave commented out if built-in 10-bit ADC is used.
 //#define IS_RGBLED           //uncomment only if RGB LED is used. Otherwise single color LED is used
+
 
 // other global objects and variables
 RFM69 radio;
@@ -63,7 +65,7 @@ void setup()
   //Serial.begin(115200);
   pinMode(POWER, OUTPUT);
 
-  radio.initialize(FREQUENCY,NODEID,NETWORKID);
+  radio.initialize(FREQUENCY,NODEID,GATEWAY_NETWORKID);
   radio.encrypt(ENCRYPTKEY);
 #ifdef IS_RFM69HW
   radio.setHighPower(); //uncomment only for RFM69HW!
@@ -76,6 +78,9 @@ void setup()
   pinMode(RED, OUTPUT);
   pinMode(GREEN, OUTPUT);
   pinMode(BLUE, OUTPUT);
+  digitalWrite(RED, HIGH);  // important - define LED pin states
+  digitalWrite(GREEN, HIGH);
+  digitalWrite(BLUE, HIGH);
   fadeRGBLED(GREEN);
 #else
   pinMode(LED, OUTPUT);  // pin 9 controls LED
@@ -127,13 +132,15 @@ void loop()
   if(wake_interval == 4)    // if enough time has passed (5 intervals = ~54 seconds), take measurements and transmit
   {
     readSensors();
-   
+    
     // send datapacket
-    radio.sendWithRetry(ROOM_GATEWAYID, dataPacket, strlen(dataPacket));  // send data
-    sleep();   // sleep 8 seconds before sending data to main gateway
-    radio.setNetwork(GATEWAY_NETWORKID);
     radio.send(GATEWAYID, dataPacket, strlen(dataPacket));
+#ifdef HAS_CONTROL_NODE
+    sleep();   // sleep 8 seconds before sending data to control node
     radio.setNetwork(NETWORKID);
+    radio.sendWithRetry(CONTROLNODE_ID, dataPacket, strlen(dataPacket));  // send data
+    radio.setNetwork(GATEWAY_NETWORKID);
+#endif
 
 #ifdef IS_RGBLED
     blinkRGBLED(GREEN, 3);
